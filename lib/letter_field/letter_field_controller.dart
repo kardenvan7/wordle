@@ -2,12 +2,14 @@ part of 'letter_field.dart';
 
 abstract interface class LetterFieldController {
   factory LetterFieldController({
-    LetterFieldState initialState,
-  }) = _UnsafeLetterFieldController;
-
-  factory LetterFieldController.safe({
-    LetterFieldState initialState,
-  }) = _SafeLetterFieldController;
+    LetterFieldState initialState = const EmptyLetterFieldState(),
+    bool safeMode = false,
+  }) {
+    return _LetterFieldControllerImpl(
+      initialState: initialState,
+      safeMode: safeMode,
+    );
+  }
 
   ValueListenable<LetterFieldState> get listenable;
 
@@ -24,10 +26,16 @@ abstract interface class LetterFieldController {
   void dispose();
 }
 
-abstract class _LetterFieldControllerImpl implements LetterFieldController {
+class _LetterFieldControllerImpl
+    with SafeModeMixin
+    implements LetterFieldController {
   _LetterFieldControllerImpl({
-    LetterFieldState initialState = const EmptyLetterFieldState(),
+    required LetterFieldState initialState,
+    required this.safeMode,
   }) : _valueNotifier = ValueNotifier(initialState);
+
+  @override
+  final bool safeMode;
 
   final ValueNotifier<LetterFieldState> _valueNotifier;
 
@@ -36,56 +44,6 @@ abstract class _LetterFieldControllerImpl implements LetterFieldController {
 
   @override
   LetterFieldState get state => listenable.value;
-
-  String get _currentLetter => switch (state) {
-        EmptyLetterFieldState() => ' ',
-        FilledLetterFieldState(letter: final letter) => letter,
-      };
-
-  @override
-  void setLetter(String letter) {
-    _valueNotifier.value = FilledLetterFieldState(
-      letter: letter,
-      validationStatus: LetterValidationStatus.notValidated,
-    );
-  }
-
-  @override
-  void eraseLetter() {
-    _valueNotifier.value = const EmptyLetterFieldState();
-  }
-
-  @override
-  void setValidationStatus(
-    LetterValidationStatus status,
-  ) {
-    _valueNotifier.value = FilledLetterFieldState(
-      letter: _currentLetter,
-      validationStatus: status,
-    );
-  }
-
-  @override
-  void clear() {
-    _valueNotifier.value = const EmptyLetterFieldState();
-  }
-
-  @override
-  void dispose() {
-    _valueNotifier.dispose();
-  }
-}
-
-class _SafeLetterFieldController extends _LetterFieldControllerImpl {
-  _SafeLetterFieldController({
-    super.initialState,
-  });
-}
-
-class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
-  _UnsafeLetterFieldController({
-    super.initialState,
-  });
 
   @override
   void setLetter(String letter) {
@@ -96,7 +54,7 @@ class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
         _setLetter(letter);
 
       case FilledLetterFieldState():
-        throw Exception('Letter setting called on filled letter field');
+        return handleError('Letter setting called on filled letter field');
     }
   }
 
@@ -106,7 +64,7 @@ class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
 
     switch (currentValue) {
       case EmptyLetterFieldState():
-        throw Exception('Letter erase called on empty letter field');
+        return handleError('Letter erase called on empty letter field');
 
       case FilledLetterFieldState():
         _eraseLetter();
@@ -119,7 +77,7 @@ class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
 
     switch (currentValue) {
       case EmptyLetterFieldState():
-        throw Exception('Validation called on empty letter field');
+        return handleError('Validation called on empty letter field');
 
       case FilledLetterFieldState(
           letter: String letter,
@@ -131,7 +89,7 @@ class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
             break;
 
           default:
-            throw Exception(
+            return handleError(
               'Validation called on already validated letter field',
             );
         }
@@ -141,6 +99,11 @@ class _UnsafeLetterFieldController extends _LetterFieldControllerImpl {
   @override
   void clear() {
     _valueNotifier.value = const EmptyLetterFieldState();
+  }
+
+  @override
+  void dispose() {
+    _valueNotifier.dispose();
   }
 
   void _setLetter(String letter) {

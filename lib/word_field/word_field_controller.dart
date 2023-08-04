@@ -3,13 +3,23 @@ part of 'word_field.dart';
 abstract interface class WordFieldController {
   factory WordFieldController({
     required String correctWord,
-  }) = _UnsafeWordFieldController;
+    bool safeMode = false,
+  }) {
+    return _WordFieldControllerImpl(
+      correctWord: correctWord,
+      safeMode: safeMode,
+    );
+  }
 
   WordFieldState get state;
 
   abstract final ValueListenable<WordFieldState> listenable;
 
   abstract final String correctWord;
+
+  bool get isFilled;
+
+  bool get isValidated;
 
   void addLetter(String letter);
 
@@ -22,19 +32,30 @@ abstract interface class WordFieldController {
   void dispose();
 }
 
-abstract class _WordFieldControllerImpl implements WordFieldController {
-  _WordFieldControllerImpl._({
-    required this.letterFieldControllers,
-  }) : _valueNotifier = ValueNotifier(
-          WordFieldState.initial(
-            letterStates: letterFieldControllers
-                .map((e) => e.state)
-                .toList(growable: false),
-          ),
-        );
+class _WordFieldControllerImpl
+    with SafeModeMixin
+    implements WordFieldController {
+  _WordFieldControllerImpl({
+    required this.correctWord,
+    required this.safeMode,
+  }) : letterFieldControllers = List.generate(
+          correctWord.length,
+          (index) => LetterFieldController(),
+        ) {
+    _valueNotifier = ValueNotifier(
+      WordFieldState.initial(
+        letterStates: letterFieldControllers.map((e) => e.state).toList(),
+      ),
+    );
+  }
+
+  @override
+  final String correctWord;
+  @override
+  final bool safeMode;
 
   final List<LetterFieldController> letterFieldControllers;
-  final ValueNotifier<WordFieldState> _valueNotifier;
+  late final ValueNotifier<WordFieldState> _valueNotifier;
 
   @override
   WordFieldState get state => listenable.value;
@@ -43,8 +64,85 @@ abstract class _WordFieldControllerImpl implements WordFieldController {
   ValueListenable<WordFieldState> get listenable => _valueNotifier;
 
   @override
+  bool get isFilled {
+    final letterStates = state.letterStates;
+
+    for (int i = letterStates.length - 1; i >= 0; i--) {
+      if (letterStates[i] is EmptyLetterFieldState) return false;
+    }
+
+    return true;
+  }
+
+  @override
+  bool get isValidated =>
+      state.validationStatus != WordFieldValidationStatus.notValidated;
+
+  @override
+  void addLetter(String letter) {
+    if (_isValidated) {
+      return handleError(
+        'Can not add a letter to already validated word field',
+      );
+    }
+
+    final controller = _firstEmptyLetterController;
+
+    if (controller == null) {
+      return handleError(
+        'Can not add a letter to fully filled word field',
+      );
+    }
+
+    controller.setLetter(letter);
+    _setStateFromControllers();
+  }
+
+  @override
+  void eraseLetter() {
+    if (_isValidated) {
+      return handleError(
+        'Can not erase letter in validated word',
+      );
+    }
+
+    final controller = _lastNonEmptyLetterController;
+
+    if (controller == null) {
+      return handleError(
+        'Can not erase letter in empty word field',
+      );
+    }
+
+    controller.eraseLetter();
+    _setStateFromControllers();
+  }
+
+  @override
+  void validate() {
+    if (_isValidated) {
+      return handleError('Can not validate already validated word field');
+    }
+
+    if (_hasEmptyLetterFields) {
+      return handleError(
+        'Can not validate word field with empty letter fields',
+      );
+    }
+
+    _validateLetters();
+    _setStateFromControllers();
+  }
+
+  @override
   void dispose() {
     _disposeControllers();
+  }
+
+  @override
+  void clear() {
+    _clearAllLetters();
+    _setStateFromControllers();
   }
 
   WordFieldState get _stateFromControllers {
@@ -129,82 +227,10 @@ abstract class _WordFieldControllerImpl implements WordFieldController {
     _valueNotifier.value = _stateFromControllers;
   }
 
-  void _disposeControllers() {
-    for (final letterController in letterFieldControllers) {
-      letterController.dispose();
-    }
-  }
-}
-
-class _UnsafeWordFieldController extends _WordFieldControllerImpl {
-  _UnsafeWordFieldController({
-    required this.correctWord,
-  }) : super._(
-          letterFieldControllers: List.generate(
-            correctWord.length,
-            (index) => LetterFieldController(),
-          ),
-        );
-
-  @override
-  final String correctWord;
-
-  @override
-  void addLetter(String letter) {
-    if (_isValidated) {
-      throw Exception('Can not add a letter to already validated word field');
-    }
-
-    final controller = _firstEmptyLetterController;
-
-    if (controller == null) {
-      throw Exception('Can not add a letter to fully filled word field');
-    }
-
-    controller.setLetter(letter);
-
-    _setStateFromControllers();
-  }
-
-  @override
-  void eraseLetter() {
-    if (_isValidated) {
-      throw Exception('Can not erase letter in validated word');
-    }
-
-    final controller = _lastNonEmptyLetterController;
-
-    if (controller == null) {
-      throw Exception('Can not erase letter in empty word field');
-    }
-
-    controller.eraseLetter();
-
-    _setStateFromControllers();
-  }
-
-  @override
-  void validate() {
-    if (_isValidated) {
-      throw Exception('Can not validate already validated word field');
-    }
-
-    if (_hasEmptyLetterFields) {
-      throw Exception('Can not validate word field with empty letter fields');
-    }
-
-    _validateLetters();
-
-    _setStateFromControllers();
-  }
-
-  @override
-  void clear() {
+  void _clearAllLetters() {
     for (final controller in letterFieldControllers) {
       controller.clear();
     }
-
-    _setStateFromControllers();
   }
 
   void _validateLetters() {
@@ -222,6 +248,7 @@ class _UnsafeWordFieldController extends _WordFieldControllerImpl {
   ) {
     switch (controller.state) {
       case EmptyLetterFieldState():
+        if (safeMode) LetterValidationStatus.notValidated;
         throw Exception('Can not validate empty letter field');
       case FilledLetterFieldState(letter: final letter):
         if (letter == correctLetter) {
@@ -233,6 +260,12 @@ class _UnsafeWordFieldController extends _WordFieldControllerImpl {
             return LetterValidationStatus.absent;
           }
         }
+    }
+  }
+
+  void _disposeControllers() {
+    for (final letterController in letterFieldControllers) {
+      letterController.dispose();
     }
   }
 }

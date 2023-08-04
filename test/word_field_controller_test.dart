@@ -6,12 +6,16 @@ void main() {
   group(
     'Word field controller tests',
     () {
-      const correctWord = 'cloth';
+      const correctWord = 'bulk';
+
+      WordFieldController getUut() {
+        return WordFieldController(correctWord: correctWord);
+      }
 
       test(
         'Initial state has empty letter states and validation state is "notValidated"',
         () {
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
           final state = uut.state;
 
           expect(
@@ -31,7 +35,7 @@ void main() {
       test(
         'Letter states count equals correct word length',
         () {
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
           final state = uut.state;
 
           expect(
@@ -44,7 +48,7 @@ void main() {
       test(
         'Correctly sets letters',
         () {
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
 
           for (int i = 0; i < uut.state.letterStates.length - 1; i++) {
             uut.addLetter(correctWord[i]);
@@ -63,7 +67,7 @@ void main() {
       test(
         'Correctly erases letters',
         () {
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
 
           for (int i = 0; i < correctWord.length; i++) {
             uut.addLetter(correctWord[i]);
@@ -80,7 +84,7 @@ void main() {
       test(
         'Correctly validates valid word',
         () {
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
 
           for (int i = 0; i < correctWord.length; i++) {
             uut.addLetter(correctWord[i]);
@@ -107,7 +111,6 @@ void main() {
       test(
         'Correctly validates incorrect word',
         () {
-          const correctWord = 'bulk';
           const typedWord = 'colb';
 
           assert(
@@ -115,7 +118,7 @@ void main() {
             'Words in test must be same length',
           );
 
-          final uut = WordFieldController(correctWord: correctWord);
+          final uut = getUut();
 
           for (int i = 0; i < typedWord.length; i++) {
             uut.addLetter(typedWord[i]);

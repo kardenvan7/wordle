@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wordle/word_field/word_field.dart';
+import 'package:wordle/wordle_field/wordle_field.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,34 +31,41 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late final WordFieldController _wordFieldController;
+  late final WordleFieldController _wordleFieldController;
 
   @override
   void initState() {
-    _wordFieldController = WordFieldController(correctWord: 'kek');
+    _wordleFieldController = WordleFieldController(
+      attemptsCount: 5,
+      correctWord: 'cloth',
+    );
 
     super.initState();
   }
 
   void _addLetter() {
-    _wordFieldController.addLetter('B');
+    _wordleFieldController.addLetter('B');
   }
 
   void _removeLetter() {
-    _wordFieldController.eraseLetter();
+    _wordleFieldController.eraseLetter();
   }
 
   void _validate() {
-    _wordFieldController.validate();
+    _wordleFieldController.validate();
   }
 
-  void _clear() {
-    _wordFieldController.clear();
+  void _clearCurrentWord() {
+    _wordleFieldController.clearCurrentWordField();
+  }
+
+  void _clearAll() {
+    _wordleFieldController.clearAll();
   }
 
   @override
   void dispose() {
-    _wordFieldController.dispose();
+    _wordleFieldController.dispose();
     super.dispose();
   }
 
@@ -69,7 +76,9 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            WordField(wordFieldController: _wordFieldController),
+            WordleField(
+              wordleFieldController: _wordleFieldController,
+            ),
             const SizedBox(height: 24),
             Wrap(
               runAlignment: WrapAlignment.center,
@@ -91,8 +100,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 const SizedBox(width: 24),
                 ElevatedButton(
-                  onPressed: _clear,
-                  child: const Text('Clear'),
+                  onPressed: _clearCurrentWord,
+                  child: const Text('Clear current word'),
+                ),
+                const SizedBox(width: 24),
+                ElevatedButton(
+                  onPressed: _clearAll,
+                  child: const Text('Clear all'),
                 ),
               ],
             ),

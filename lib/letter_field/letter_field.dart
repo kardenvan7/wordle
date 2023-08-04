@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:wordle/mixins/mixin.dart';
 
 part 'letter_field_controller.dart';
 part 'letter_field_state.dart';

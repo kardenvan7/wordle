@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:wordle/letter_field/letter_field.dart';
+import 'package:wordle/mixins/mixin.dart';
 
 part 'word_field_controller.dart';
 part 'word_field_state.dart';

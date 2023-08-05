@@ -82,7 +82,7 @@ void main() {
       );
 
       test(
-        'Correctly validates valid word',
+        'Correctly validates correct word',
         () {
           final uut = getUut();
 

@@ -1,6 +1,6 @@
 part of 'letter_field.dart';
 
-abstract interface class LetterFieldController {
+abstract interface class LetterFieldController implements Listenable {
   factory LetterFieldController({
     LetterFieldState initialState = const EmptyLetterFieldState(),
     bool safeMode = false,
@@ -11,9 +11,9 @@ abstract interface class LetterFieldController {
     );
   }
 
-  ValueListenable<LetterFieldState> get listenable;
-
   LetterFieldState get state;
+
+  Stream<LetterFieldEvent> get eventStream;
 
   void setLetter(String letter);
 
@@ -21,35 +21,36 @@ abstract interface class LetterFieldController {
 
   void setValidationStatus(LetterValidationStatus status);
 
+  void shake();
+
   void clear();
 
   void dispose();
 }
 
-class _LetterFieldControllerImpl
-    with SafeModeMixin
+final class _LetterFieldControllerImpl
+    with ChangeNotifier, SafeModeMixin, EventStreamMixin<LetterFieldEvent>
     implements LetterFieldController {
   _LetterFieldControllerImpl({
     required LetterFieldState initialState,
     required this.safeMode,
-  }) : _valueNotifier = ValueNotifier(initialState);
+    LetterFieldShaker shaker = const DefaultLetterFieldShaker(),
+  })  : _shaker = shaker,
+        state = initialState;
 
   @override
   final bool safeMode;
 
-  final ValueNotifier<LetterFieldState> _valueNotifier;
-
   @override
-  ValueListenable<LetterFieldState> get listenable => _valueNotifier;
+  LetterFieldState state;
 
-  @override
-  LetterFieldState get state => listenable.value;
+  final LetterFieldShaker _shaker;
 
   @override
   void setLetter(String letter) {
-    final currentValue = _valueNotifier.value;
+    final currentState = state;
 
-    switch (currentValue) {
+    switch (currentState) {
       case EmptyLetterFieldState():
         _setLetter(letter);
 
@@ -60,9 +61,9 @@ class _LetterFieldControllerImpl
 
   @override
   void eraseLetter() {
-    final currentValue = _valueNotifier.value;
+    final currentState = state;
 
-    switch (currentValue) {
+    switch (currentState) {
       case EmptyLetterFieldState():
         return handleError('Letter erase called on empty letter field');
 
@@ -73,9 +74,9 @@ class _LetterFieldControllerImpl
 
   @override
   void setValidationStatus(LetterValidationStatus status) {
-    final currentValue = _valueNotifier.value;
+    final currentState = state;
 
-    switch (currentValue) {
+    switch (currentState) {
       case EmptyLetterFieldState():
         return handleError('Validation called on empty letter field');
 
@@ -97,33 +98,52 @@ class _LetterFieldControllerImpl
   }
 
   @override
-  void clear() {
-    _valueNotifier.value = const EmptyLetterFieldState();
+  void shake() {
+    _shaker.shake((type) => addEvent(ShakeLetterFieldEvent(type: type)));
   }
 
   @override
-  void dispose() {
-    _valueNotifier.dispose();
+  void clear() {
+    _setState(const EmptyLetterFieldState());
   }
 
   void _setLetter(String letter) {
-    _valueNotifier.value = FilledLetterFieldState(
-      letter: letter,
-      validationStatus: LetterValidationStatus.notValidated,
+    _setState(
+      FilledLetterFieldState(
+        letter: letter,
+        validationStatus: LetterValidationStatus.notValidated,
+      ),
     );
   }
 
   void _eraseLetter() {
-    _valueNotifier.value = const EmptyLetterFieldState();
+    _setState(const EmptyLetterFieldState());
   }
 
   void _setValidationStatus(
     String letter,
     LetterValidationStatus status,
   ) {
-    _valueNotifier.value = FilledLetterFieldState(
-      letter: letter,
-      validationStatus: status,
+    _setState(
+      FilledLetterFieldState(
+        letter: letter,
+        validationStatus: status,
+      ),
     );
   }
+
+  void _setState(LetterFieldState state) {
+    this.state = state;
+    notifyListeners();
+  }
+}
+
+sealed class LetterFieldEvent {}
+
+class ShakeLetterFieldEvent implements LetterFieldEvent {
+  const ShakeLetterFieldEvent({
+    required this.type,
+  });
+
+  final LetterFieldShakeType type;
 }

@@ -1,25 +1,25 @@
 part of 'word_field.dart';
 
-abstract interface class WordFieldController {
+abstract interface class WordFieldController implements Listenable {
   factory WordFieldController({
     required String correctWord,
     bool safeMode = false,
+    WordFieldValidator? validator,
+    WordFieldWriter? letterWriter,
+    WordFieldEraser? letterEraser,
   }) {
     return _WordFieldControllerImpl(
       correctWord: correctWord,
       safeMode: safeMode,
+      validator: validator,
+      eraser: letterEraser,
+      writer: letterWriter,
     );
   }
 
   WordFieldState get state;
 
-  abstract final ValueListenable<WordFieldState> listenable;
-
-  abstract final String correctWord;
-
-  bool get isFilled;
-
-  bool get isValidated;
+  String get correctWord;
 
   void addLetter(String letter);
 
@@ -27,165 +27,129 @@ abstract interface class WordFieldController {
 
   void validate();
 
+  void shake();
+
   void clear();
 
   void dispose();
 }
 
-class _WordFieldControllerImpl
-    with SafeModeMixin
+final class _WordFieldControllerImpl
+    with ChangeNotifier
     implements WordFieldController {
   _WordFieldControllerImpl({
     required this.correctWord,
-    required this.safeMode,
-  }) : letterFieldControllers = List.generate(
+    required bool safeMode,
+    WordFieldValidator? validator,
+    WordFieldWriter? writer,
+    WordFieldEraser? eraser,
+    WordFieldShaker? shaker,
+  })  : letterFieldsControllers = List.generate(
           correctWord.length,
-          (index) => LetterFieldController(),
-        ) {
-    _valueNotifier = ValueNotifier(
-      WordFieldState.initial(
-        letterStates: letterFieldControllers.map((e) => e.state).toList(),
-      ),
+          (index) => LetterFieldController(safeMode: safeMode),
+        ),
+        _validator = validator ?? DefaultWordFieldValidator(safeMode),
+        _writer = writer ?? DefaultWordFieldWriter(safeMode),
+        _eraser = eraser ?? DefaultWordFieldEraser(safeMode),
+        _shaker = shaker ?? DefaultWordFieldShaker() {
+    state = WordFieldState.initial(
+      letterStates: letterFieldsControllers.map((e) => e.state).toList(),
     );
   }
 
   @override
   final String correctWord;
-  @override
-  final bool safeMode;
-
-  final List<LetterFieldController> letterFieldControllers;
-  late final ValueNotifier<WordFieldState> _valueNotifier;
-
-  @override
-  WordFieldState get state => listenable.value;
+  final List<LetterFieldController> letterFieldsControllers;
+  final WordFieldValidator _validator;
+  final WordFieldWriter _writer;
+  final WordFieldEraser _eraser;
+  final WordFieldShaker _shaker;
 
   @override
-  ValueListenable<WordFieldState> get listenable => _valueNotifier;
-
-  @override
-  bool get isFilled {
-    final letterStates = state.letterStates;
-
-    for (int i = letterStates.length - 1; i >= 0; i--) {
-      if (letterStates[i] is EmptyLetterFieldState) return false;
-    }
-
-    return true;
-  }
-
-  @override
-  bool get isValidated =>
-      state.validationStatus != WordFieldValidationStatus.notValidated;
+  late WordFieldState state;
 
   @override
   void addLetter(String letter) {
-    if (_isValidated) {
-      return handleError(
-        'Can not add a letter to already validated word field',
-      );
-    }
-
-    final controller = _firstEmptyLetterController;
-
-    if (controller == null) {
-      return handleError(
-        'Can not add a letter to fully filled word field',
-      );
-    }
-
-    controller.setLetter(letter);
-    _setStateFromControllers();
+    _writer.writeLetter(
+      letterFieldsControllers,
+      state,
+      letter,
+      _updateStateFromControllers,
+    );
   }
 
   @override
   void eraseLetter() {
-    if (_isValidated) {
-      return handleError(
-        'Can not erase letter in validated word',
-      );
-    }
-
-    final controller = _lastNonEmptyLetterController;
-
-    if (controller == null) {
-      return handleError(
-        'Can not erase letter in empty word field',
-      );
-    }
-
-    controller.eraseLetter();
-    _setStateFromControllers();
+    _eraser.eraseLetter(
+      letterFieldsControllers,
+      state,
+      _updateStateFromControllers,
+    );
   }
 
   @override
   void validate() {
-    if (_isValidated) {
-      return handleError('Can not validate already validated word field');
-    }
-
-    if (_hasEmptyLetterFields) {
-      return handleError(
-        'Can not validate word field with empty letter fields',
-      );
-    }
-
-    _validateLetters();
-    _setStateFromControllers();
+    _validator.validate(
+      letterFieldsControllers,
+      state,
+      correctWord,
+      _updateStateFromControllers,
+    );
   }
 
   @override
-  void dispose() {
-    _disposeControllers();
+  void shake() {
+    _shaker.shake(letterFieldsControllers);
   }
 
   @override
   void clear() {
     _clearAllLetters();
-    _setStateFromControllers();
+    _updateStateFromControllers();
   }
 
-  WordFieldState get _stateFromControllers {
+  @override
+  void dispose() {
+    _disposeControllers();
+    super.dispose();
+  }
+
+  WordFieldState _getStateFromControllers() {
     final List<LetterFieldState> letterStates = [];
-    late final WordFieldValidationStatus wordFieldValidationStatus;
 
-    bool hasIncorrectLetters = false;
-    bool hasNotValidatedLetters = false;
+    WordFieldValidationStatus wordFieldValidationStatus =
+        WordFieldValidationStatus.correct;
 
-    for (int i = letterFieldControllers.length - 1; i >= 0; i--) {
-      final controller = letterFieldControllers[i];
-      final letterState = controller.state;
+    for (int i = 0; i < letterFieldsControllers.length; i++) {
+      final letterState = letterFieldsControllers[i].state;
 
-      letterStates.insert(0, letterState);
+      letterStates.add(letterState);
 
-      switch (letterState) {
-        case EmptyLetterFieldState():
-          hasNotValidatedLetters = true;
-          break;
-        case FilledLetterFieldState(validationStatus: final status):
-          switch (status) {
-            case LetterValidationStatus.notValidated:
-              hasNotValidatedLetters = true;
-              break;
-            case LetterValidationStatus.absent:
-              hasIncorrectLetters = true;
-              break;
-            case LetterValidationStatus.wrongPlacement:
-              hasIncorrectLetters = true;
-              break;
-            case LetterValidationStatus.correct:
-              break;
-          }
+      if (wordFieldValidationStatus == WordFieldValidationStatus.notValidated) {
+        continue;
       }
-    }
 
-    if (hasNotValidatedLetters) {
-      wordFieldValidationStatus = WordFieldValidationStatus.notValidated;
-    } else {
-      if (hasIncorrectLetters) {
+      final bool isNotValidated = letterState is EmptyLetterFieldState ||
+          (letterState is FilledLetterFieldState &&
+              letterState.validationStatus ==
+                  LetterValidationStatus.notValidated);
+
+      if (isNotValidated) {
+        wordFieldValidationStatus = WordFieldValidationStatus.notValidated;
+        continue;
+      }
+
+      if (wordFieldValidationStatus == WordFieldValidationStatus.incorrect) {
+        continue;
+      }
+
+      final bool isIncorrect = letterState is FilledLetterFieldState &&
+          (letterState.validationStatus == LetterValidationStatus.absent ||
+              letterState.validationStatus ==
+                  LetterValidationStatus.wrongPlacement);
+
+      if (isIncorrect) {
         wordFieldValidationStatus = WordFieldValidationStatus.incorrect;
-      } else {
-        wordFieldValidationStatus = WordFieldValidationStatus.correct;
       }
     }
 
@@ -195,77 +159,22 @@ class _WordFieldControllerImpl
     );
   }
 
-  LetterFieldController? get _firstEmptyLetterController =>
-      letterFieldControllers.firstWhereOrNull(
-        (element) => element.state is EmptyLetterFieldState,
-      );
-
-  LetterFieldController? get _lastNonEmptyLetterController {
-    for (int i = letterFieldControllers.length - 1; i >= 0; i--) {
-      final controller = letterFieldControllers[i];
-
-      if (controller.state is FilledLetterFieldState) return controller;
-    }
-
-    return null;
-  }
-
-  bool get _isValidated =>
-      state.validationStatus != WordFieldValidationStatus.notValidated;
-
-  bool get _hasEmptyLetterFields {
-    for (int i = letterFieldControllers.length - 1; i >= 0; i--) {
-      final currentState = letterFieldControllers[i].state;
-
-      if (currentState is EmptyLetterFieldState) return true;
-    }
-
-    return false;
-  }
-
-  void _setStateFromControllers() {
-    _valueNotifier.value = _stateFromControllers;
+  void _updateStateFromControllers() {
+    state = _getStateFromControllers();
+    notifyListeners();
   }
 
   void _clearAllLetters() {
-    for (final controller in letterFieldControllers) {
+    for (final controller in letterFieldsControllers) {
       controller.clear();
     }
   }
 
-  void _validateLetters() {
-    for (int i = 0; i < letterFieldControllers.length; i++) {
-      final controller = letterFieldControllers[i];
-      final status = _validateLetter(controller, correctWord[i]);
-
-      controller.setValidationStatus(status);
-    }
-  }
-
-  LetterValidationStatus _validateLetter(
-    LetterFieldController controller,
-    String correctLetter,
-  ) {
-    switch (controller.state) {
-      case EmptyLetterFieldState():
-        if (safeMode) LetterValidationStatus.notValidated;
-        throw Exception('Can not validate empty letter field');
-      case FilledLetterFieldState(letter: final letter):
-        if (letter == correctLetter) {
-          return LetterValidationStatus.correct;
-        } else {
-          if (correctWord.contains(letter)) {
-            return LetterValidationStatus.wrongPlacement;
-          } else {
-            return LetterValidationStatus.absent;
-          }
-        }
-    }
-  }
-
   void _disposeControllers() {
-    for (final letterController in letterFieldControllers) {
+    for (final letterController in letterFieldsControllers) {
       letterController.dispose();
     }
   }
 }
+
+typedef HandleErrorCallback = void Function(String message);

@@ -15,6 +15,37 @@ class WordFieldState {
     );
   }
 
+  factory WordFieldState.empty(int letterCount) {
+    return WordFieldState(
+      letterStates: List.generate(
+        letterCount,
+        (index) => const EmptyLetterFieldState(),
+      ),
+      validationStatus: WordFieldValidationStatus.notValidated,
+    );
+  }
+
+  bool get isValidated =>
+      validationStatus != WordFieldValidationStatus.notValidated;
+
+  bool get isFilled {
+    for (int i = letterStates.length - 1; i >= 0; i--) {
+      if (letterStates[i] is EmptyLetterFieldState) return false;
+    }
+
+    return true;
+  }
+
+  bool get hasEmptyLetterFields {
+    for (int i = letterStates.length - 1; i >= 0; i--) {
+      final currentState = letterStates[i];
+
+      if (currentState is EmptyLetterFieldState) return true;
+    }
+
+    return false;
+  }
+
   final List<LetterFieldState> letterStates;
   final WordFieldValidationStatus validationStatus;
 

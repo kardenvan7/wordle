@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wordle/keyboard/wordle_keyboard.dart';
 import 'package:wordle/wordle_field/wordle_field.dart';
 
 void main() {
@@ -43,8 +44,19 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
-  void _addLetter() {
-    _wordleFieldController.addLetter('B');
+  void _onKeyPressed(KeyboardAction action) {
+    switch (action) {
+      case LetterKeyboardAction(letter: final letter):
+        _addLetter(letter);
+        break;
+      case EraseKeyboardAction():
+        _removeLetter();
+        break;
+    }
+  }
+
+  void _addLetter(String letter) {
+    _wordleFieldController.addLetter(letter);
   }
 
   void _removeLetter() {
@@ -74,26 +86,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return SafeArea(
       child: Scaffold(
         body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             WordleField(
               wordleFieldController: _wordleFieldController,
             ),
-            const SizedBox(height: 24),
             Wrap(
               runAlignment: WrapAlignment.center,
               alignment: WrapAlignment.center,
               children: [
-                ElevatedButton(
-                  onPressed: _addLetter,
-                  child: const Text('Add letter'),
-                ),
-                const SizedBox(width: 24),
-                ElevatedButton(
-                  onPressed: _removeLetter,
-                  child: const Text('Remove letter'),
-                ),
-                const SizedBox(width: 24),
                 ElevatedButton(
                   onPressed: _validate,
                   child: const Text('Validate'),
@@ -109,6 +110,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('Clear all'),
                 ),
               ],
+            ),
+            WordleKeyboard(
+              onKeyPressed: _onKeyPressed,
             ),
           ],
         ),

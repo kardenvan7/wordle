@@ -41,16 +41,20 @@ class _WordleFieldControllerImpl
     required this.correctWord,
     required this.attemptsCount,
     required this.safeMode,
-  })  : wordFieldControllers = List.generate(
+  }) : wordFieldControllers = List.generate(
           attemptsCount,
           (index) => WordFieldController(
             correctWord: correctWord,
             safeMode: safeMode,
           ),
-        ),
-        _valueNotifier = ValueNotifier(
-          const NotFinishedWordleFieldState(currentAttempt: 1),
-        );
+        ) {
+    _valueNotifier = ValueNotifier(
+      NotFinishedWordleFieldState(
+        currentAttempt: 1,
+        wordsFieldsStates: wordFieldControllers.map((e) => e.state).toList(),
+      ),
+    );
+  }
 
   @override
   final String correctWord;
@@ -59,10 +63,13 @@ class _WordleFieldControllerImpl
   @override
   final bool safeMode;
 
-  final ValueNotifier<WordleFieldState> _valueNotifier;
   final List<WordFieldController> wordFieldControllers;
+  late final ValueNotifier<WordleFieldState> _valueNotifier;
 
   int _currentWordControllerIndex = 0;
+
+  List<WordFieldState> get _wordFieldStates =>
+      wordFieldControllers.map((e) => e.state).toList();
 
   @override
   ValueListenable<WordleFieldState> get listenable => _valueNotifier;
@@ -136,6 +143,7 @@ class _WordleFieldControllerImpl
 
       _valueNotifier.value = NotFinishedWordleFieldState(
         currentAttempt: _currentAttempt,
+        wordsFieldsStates: _wordFieldStates,
       );
     }
   }
@@ -146,6 +154,7 @@ class _WordleFieldControllerImpl
         _valueNotifier.value = FinishedWordleFieldState(
           attemptsCount: _currentAttempt,
           result: FinishedWordleFieldResult.won,
+          wordsFieldsStates: _wordFieldStates,
         );
 
         break;
@@ -155,6 +164,7 @@ class _WordleFieldControllerImpl
           _valueNotifier.value = FinishedWordleFieldState(
             attemptsCount: _currentAttempt,
             result: FinishedWordleFieldResult.lost,
+            wordsFieldsStates: _wordFieldStates,
           );
         } else {
           _jumpToNextAttempt();
@@ -165,6 +175,7 @@ class _WordleFieldControllerImpl
       case WordFieldValidationStatus.notValidated:
         _valueNotifier.value = NotFinishedWordleFieldState(
           currentAttempt: _currentAttempt,
+          wordsFieldsStates: _wordFieldStates,
         );
 
         break;

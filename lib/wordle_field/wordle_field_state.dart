@@ -1,10 +1,26 @@
 part of 'wordle_field.dart';
 
-sealed class WordleFieldState {}
+sealed class WordleFieldState {
+  const WordleFieldState({
+    required this.wordsFieldsStates,
+  });
 
-final class NotFinishedWordleFieldState implements WordleFieldState {
+  final List<WordFieldState> wordsFieldsStates;
+
+  @override
+  int get hashCode => wordsFieldsStates.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! WordleFieldState) return false;
+    return wordsFieldsStates.equals(other.wordsFieldsStates);
+  }
+}
+
+final class NotFinishedWordleFieldState extends WordleFieldState {
   const NotFinishedWordleFieldState({
     required this.currentAttempt,
+    required super.wordsFieldsStates,
   });
 
   final int currentAttempt;
@@ -25,10 +41,11 @@ final class NotFinishedWordleFieldState implements WordleFieldState {
   }
 }
 
-final class FinishedWordleFieldState implements WordleFieldState {
+final class FinishedWordleFieldState extends WordleFieldState {
   const FinishedWordleFieldState({
     required this.attemptsCount,
     required this.result,
+    required super.wordsFieldsStates,
   });
 
   final int attemptsCount;

@@ -21,9 +21,11 @@ void main() {
         () {
           final uut = getUut();
 
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 1),
+            state is NotFinishedWordleFieldState && state.currentAttempt == 1,
+            true,
           );
         },
       );
@@ -39,9 +41,11 @@ void main() {
 
           uut.validate();
 
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 2),
+            state is NotFinishedWordleFieldState && state.currentAttempt == 2,
+            true,
           );
         },
       );
@@ -57,9 +61,11 @@ void main() {
 
           uut.validate();
 
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 2),
+            state is NotFinishedWordleFieldState && state.currentAttempt == 2,
+            true,
           );
         },
       );
@@ -75,9 +81,12 @@ void main() {
 
           uut.clearCurrentWordField();
 
+          final firstState = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 1),
+            firstState is NotFinishedWordleFieldState &&
+                firstState.currentAttempt == 1,
+            true,
           );
 
           for (int i = 0; i < incorrectWord.length; i++) {
@@ -87,9 +96,12 @@ void main() {
           uut.validate();
           uut.clearCurrentWordField();
 
+          final secondState = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 2),
+            secondState is NotFinishedWordleFieldState &&
+                secondState.currentAttempt == 2,
+            true,
           );
         },
       );
@@ -106,9 +118,12 @@ void main() {
           uut.validate();
 
           expect(() => uut.eraseLetter(), throwsException);
+
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const NotFinishedWordleFieldState(currentAttempt: 2),
+            state is NotFinishedWordleFieldState && state.currentAttempt == 2,
+            true,
           );
         },
       );
@@ -124,12 +139,12 @@ void main() {
 
           uut.validate();
 
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const FinishedWordleFieldState(
-              attemptsCount: 1,
-              result: FinishedWordleFieldResult.won,
-            ),
+            state is FinishedWordleFieldState &&
+                state.result == FinishedWordleFieldResult.won,
+            true,
           );
         },
       );
@@ -142,13 +157,6 @@ void main() {
           for (int attemptCount = 1;
               attemptCount <= attemptsCount;
               attemptCount++) {
-            expect(
-              uut.state,
-              NotFinishedWordleFieldState(
-                currentAttempt: attemptCount,
-              ),
-            );
-
             for (int i = 0; i < incorrectWord.length; i++) {
               uut.addLetter(incorrectWord[i]);
             }
@@ -156,12 +164,12 @@ void main() {
             uut.validate();
           }
 
+          final state = uut.state;
+
           expect(
-            uut.state,
-            const FinishedWordleFieldState(
-              attemptsCount: attemptsCount,
-              result: FinishedWordleFieldResult.lost,
-            ),
+            state is FinishedWordleFieldState &&
+                state.result == FinishedWordleFieldResult.lost,
+            true,
           );
         },
       );

@@ -1,6 +1,7 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:wordle/mixins/mixin.dart';
+import 'package:wordle/mixins/safe_mode_mixin.dart';
 import 'package:wordle/word_field/word_field.dart';
 
 part 'wordle_field_controller.dart';

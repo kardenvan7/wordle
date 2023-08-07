@@ -6,7 +6,7 @@ void main() {
     'Wordle field controller tests',
     () {
       const correctWord = 'cloth';
-      const incorrectWord = 'crest';
+      const incorrectWord = 'crush';
       const attemptsCount = 5;
 
       WordleFieldController getUut() {

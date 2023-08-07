@@ -5,15 +5,17 @@ abstract interface class WordFieldController implements Listenable {
     required String correctWord,
     bool safeMode = false,
     WordFieldValidator? validator,
-    WordFieldWriter? letterWriter,
-    WordFieldEraser? letterEraser,
+    WordFieldWriter? writer,
+    WordFieldEraser? eraser,
+    WordFieldShaker? shaker,
   }) {
     return _WordFieldControllerImpl(
       correctWord: correctWord,
       safeMode: safeMode,
       validator: validator,
-      eraser: letterEraser,
-      writer: letterWriter,
+      eraser: eraser,
+      writer: writer,
+      shaker: shaker,
     );
   }
 
@@ -70,54 +72,6 @@ final class _WordFieldControllerImpl
   @override
   late WordFieldState state;
 
-  void _subscribeToLetterFieldControllers() {
-    for (int i = 0; i < letterFieldsControllers.length; i++) {
-      letterFieldsControllers[i].addListener(() {
-        _letterFieldControllerListener(i);
-      });
-    }
-  }
-
-  void _unsubscribeFromLetterFieldControllers() {
-    for (int i = 0; i < letterFieldsControllers.length; i++) {
-      letterFieldsControllers[i].removeListener(() {
-        _letterFieldControllerListener(i);
-      });
-    }
-  }
-
-  void _letterFieldControllerListener(int index) {
-    final newState = letterFieldsControllers[index].state;
-    final newStates = state.letterStates.withReplacedAt(index, newState);
-
-    final isLast = index == letterFieldsControllers.length - 1;
-
-    final newValidationStatus = switch (newState) {
-      EmptyLetterFieldState() => WordFieldValidationStatus.notValidated,
-      FilledLetterFieldState(validationStatus: final validationStatus) =>
-        switch (validationStatus) {
-          LetterValidationStatus.notValidated =>
-            WordFieldValidationStatus.notValidated,
-          LetterValidationStatus.absent => isLast
-              ? WordFieldValidationStatus.incorrect
-              : state.validationStatus,
-          LetterValidationStatus.wrongPlacement => isLast
-              ? WordFieldValidationStatus.incorrect
-              : state.validationStatus,
-          LetterValidationStatus.correct => !state.isValidated && isLast
-              ? WordFieldValidationStatus.correct
-              : state.validationStatus,
-        },
-    };
-
-    state = WordFieldState(
-      letterStates: newStates,
-      validationStatus: newValidationStatus,
-    );
-
-    notifyListeners();
-  }
-
   @override
   void addLetter(String letter) {
     _writer.writeLetter(
@@ -159,6 +113,61 @@ final class _WordFieldControllerImpl
     _unsubscribeFromLetterFieldControllers();
     _disposeControllers();
     super.dispose();
+  }
+
+  void _subscribeToLetterFieldControllers() {
+    for (int i = 0; i < letterFieldsControllers.length; i++) {
+      letterFieldsControllers[i].addListener(() {
+        _letterFieldControllerListener(i);
+      });
+    }
+  }
+
+  void _unsubscribeFromLetterFieldControllers() {
+    for (int i = 0; i < letterFieldsControllers.length; i++) {
+      letterFieldsControllers[i].removeListener(() {
+        _letterFieldControllerListener(i);
+      });
+    }
+  }
+
+  void _letterFieldControllerListener(int index) {
+    final newState = letterFieldsControllers[index].state;
+    final newValidationStatus = _getNewValidationStatus(newState, index);
+    final newStates = state.letterStates.withReplacedAt(index, newState);
+
+    state = WordFieldState(
+      letterStates: newStates,
+      validationStatus: newValidationStatus,
+    );
+
+    notifyListeners();
+  }
+
+  WordFieldValidationStatus _getNewValidationStatus(
+    LetterFieldState newLetterState,
+    int letterIndex,
+  ) {
+    final isLast = letterIndex == letterFieldsControllers.length - 1;
+
+    return switch (newLetterState) {
+      EmptyLetterFieldState() => WordFieldValidationStatus.notValidated,
+      FilledLetterFieldState(validationStatus: final validationStatus) =>
+        switch (validationStatus) {
+          LetterValidationStatus.notValidated =>
+            WordFieldValidationStatus.notValidated,
+          LetterValidationStatus.absent => WordFieldValidationStatus.incorrect,
+          LetterValidationStatus.wrongPlacement =>
+            WordFieldValidationStatus.incorrect,
+          LetterValidationStatus.correct => switch (state.validationStatus) {
+              WordFieldValidationStatus.notValidated => isLast
+                  ? WordFieldValidationStatus.correct
+                  : state.validationStatus,
+              WordFieldValidationStatus.incorrect => state.validationStatus,
+              WordFieldValidationStatus.correct => state.validationStatus,
+            },
+        },
+    };
   }
 
   void _clearAllLetters() {

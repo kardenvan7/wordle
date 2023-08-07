@@ -32,7 +32,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late final WordleFieldController _wordleFieldController;
+  final List<String> words = const [
+    'cloth',
+    'block',
+    'witch',
+    'crest',
+  ];
+
+  int _currentWordIndex = 0;
+
+  String get _currentWord => words[_currentWordIndex];
+
+  late WordleFieldController _wordleFieldController;
 
   @override
   void initState() {
@@ -75,6 +86,18 @@ class _MyHomePageState extends State<MyHomePage> {
     _wordleFieldController.clearAll();
   }
 
+  void _changeWord() {
+    _wordleFieldController.dispose();
+
+    setState(() {
+      _currentWordIndex++;
+      _wordleFieldController = WordleFieldController(
+        correctWord: _currentWord,
+        attemptsCount: 6,
+      );
+    });
+  }
+
   @override
   void dispose() {
     _wordleFieldController.dispose();
@@ -95,6 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               WordleField(
+                key: ObjectKey(_wordleFieldController),
                 wordleFieldController: _wordleFieldController,
               ),
               Wrap(
@@ -114,6 +138,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   ElevatedButton(
                     onPressed: _clearAll,
                     child: const Text('Clear all'),
+                  ),
+                  const SizedBox(width: 24),
+                  ElevatedButton(
+                    onPressed: _changeWord,
+                    child: const Text('Change word'),
                   ),
                 ],
               ),

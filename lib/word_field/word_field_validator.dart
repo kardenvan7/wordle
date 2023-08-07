@@ -57,8 +57,8 @@ class DefaultWordFieldValidator
 
     switch (letterState) {
       case EmptyLetterFieldState():
-        if (safeMode) LetterValidationStatus.notValidated;
-        throw Exception('Can not validate empty letter field');
+        handleError('Can not validate empty letter field');
+        return LetterValidationStatus.notValidated;
       case FilledLetterFieldState(letter: final letter):
         final formattedLetter = _refineString(letter);
 

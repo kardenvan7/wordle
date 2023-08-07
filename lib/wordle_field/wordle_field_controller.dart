@@ -5,15 +5,21 @@ abstract interface class WordleFieldController implements Listenable {
     required String correctWord,
     required int attemptsCount,
     bool safeMode = false,
+    WordFieldValidator? wordValidator,
+    WordFieldEraser? wordEraser,
+    WordFieldWriter? wordWriter,
+    WordFieldShaker? wordShaker,
   }) {
     return _WordleFieldControllerImpl(
       correctWord: correctWord,
       attemptsCount: attemptsCount,
       safeMode: safeMode,
+      wordEraser: wordEraser,
+      wordShaker: wordShaker,
+      wordValidator: wordValidator,
+      wordWriter: wordWriter,
     );
   }
-
-  String get correctWord;
 
   int get attemptsCount;
 
@@ -36,14 +42,22 @@ class _WordleFieldControllerImpl
     with ChangeNotifier, SafeModeMixin
     implements WordleFieldController {
   _WordleFieldControllerImpl({
-    required this.correctWord,
+    required String correctWord,
     required this.attemptsCount,
     required this.safeMode,
+    WordFieldValidator? wordValidator,
+    WordFieldEraser? wordEraser,
+    WordFieldWriter? wordWriter,
+    WordFieldShaker? wordShaker,
   }) : wordFieldControllers = List.generate(
           attemptsCount,
           (index) => WordFieldController(
             correctWord: correctWord,
             safeMode: safeMode,
+            validator: wordValidator,
+            writer: wordWriter,
+            eraser: wordEraser,
+            shaker: wordShaker,
           ),
         ) {
     state = _getInitialState();
@@ -51,8 +65,6 @@ class _WordleFieldControllerImpl
     _subscribeToWordsFieldsControllers();
   }
 
-  @override
-  final String correctWord;
   @override
   final int attemptsCount;
   @override
@@ -79,7 +91,7 @@ class _WordleFieldControllerImpl
   @override
   void addLetter(String letter) {
     if (_isFinished) {
-      throw Exception('Can not add letter in finished wordle field');
+      return handleError('Can not add letter in finished wordle field');
     }
 
     _currentWordController.addLetter(letter);
@@ -88,7 +100,7 @@ class _WordleFieldControllerImpl
   @override
   void eraseLetter() {
     if (_isFinished) {
-      throw Exception('Can not erase letter in finished wordle field');
+      return handleError('Can not erase letter in finished wordle field');
     }
 
     _currentWordController.eraseLetter();
@@ -97,7 +109,7 @@ class _WordleFieldControllerImpl
   @override
   void validate() {
     if (_isFinished) {
-      throw Exception('Can not validate finished wordle field');
+      return handleError('Can not validate finished wordle field');
     }
 
     _currentWordController.validate();

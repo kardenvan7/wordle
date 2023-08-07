@@ -41,6 +41,13 @@ class LetterField extends StatelessWidget {
     return color;
   }
 
+  String _getTextByState(LetterFieldState state) {
+    return switch (state) {
+      EmptyLetterFieldState() => '',
+      FilledLetterFieldState(letter: String text) => text,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamListener<LetterFieldEvent>(
@@ -62,10 +69,7 @@ class LetterField extends StatelessWidget {
             child: SizedBox(
               width: 24,
               child: Text(
-                switch (state) {
-                  EmptyLetterFieldState() => '',
-                  FilledLetterFieldState(letter: String text) => text,
-                },
+                _getTextByState(state),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,

@@ -111,7 +111,7 @@ void main() {
       test(
         'Correctly validates incorrect word',
         () {
-          const typedWord = 'colb';
+          const typedWord = 'fork';
 
           assert(
             correctWord.length == typedWord.length,

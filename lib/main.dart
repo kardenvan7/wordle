@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     _wordleFieldController = WordleFieldController(
-      attemptsCount: 5,
+      attemptsCount: 6,
       correctWord: 'cloth',
     );
 
@@ -85,36 +85,43 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            WordleField(
-              wordleFieldController: _wordleFieldController,
-            ),
-            Wrap(
-              runAlignment: WrapAlignment.center,
-              alignment: WrapAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _validate,
-                  child: const Text('Validate'),
-                ),
-                const SizedBox(width: 24),
-                ElevatedButton(
-                  onPressed: _clearCurrentWord,
-                  child: const Text('Clear current word'),
-                ),
-                const SizedBox(width: 24),
-                ElevatedButton(
-                  onPressed: _clearAll,
-                  child: const Text('Clear all'),
-                ),
-              ],
-            ),
-            WordleKeyboard(
-              onKeyPressed: _onKeyPressed,
-            ),
-          ],
+        body: Padding(
+          padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 10,
+              ) +
+              const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              WordleField(
+                wordleFieldController: _wordleFieldController,
+              ),
+              Wrap(
+                runAlignment: WrapAlignment.center,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: _validate,
+                    child: const Text('Validate'),
+                  ),
+                  const SizedBox(width: 24),
+                  ElevatedButton(
+                    onPressed: _clearCurrentWord,
+                    child: const Text('Clear current word'),
+                  ),
+                  const SizedBox(width: 24),
+                  ElevatedButton(
+                    onPressed: _clearAll,
+                    child: const Text('Clear all'),
+                  ),
+                ],
+              ),
+              WordleKeyboard(
+                onKeyPressed: _onKeyPressed,
+              ),
+            ],
+          ),
         ),
       ),
     );

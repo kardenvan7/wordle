@@ -4,7 +4,6 @@ abstract interface class WordFieldEraser {
   void eraseLetter(
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
-    VoidCallback updateState,
   );
 }
 
@@ -30,7 +29,6 @@ class DefaultWordFieldEraser with SafeModeMixin implements WordFieldEraser {
   void eraseLetter(
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
-    VoidCallback updateState,
   ) {
     if (state.isValidated) {
       return handleError(
@@ -49,6 +47,5 @@ class DefaultWordFieldEraser with SafeModeMixin implements WordFieldEraser {
     }
 
     controller.eraseLetter();
-    updateState();
   }
 }

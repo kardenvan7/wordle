@@ -5,7 +5,6 @@ abstract interface class WordFieldWriter {
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
     String letter,
-    VoidCallback updateState,
   );
 }
 
@@ -27,7 +26,6 @@ class DefaultWordFieldWriter with SafeModeMixin implements WordFieldWriter {
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
     String letter,
-    VoidCallback updateState,
   ) {
     if (state.isValidated) {
       return handleError(
@@ -44,6 +42,5 @@ class DefaultWordFieldWriter with SafeModeMixin implements WordFieldWriter {
     }
 
     controller.setLetter(letter);
-    updateState();
   }
 }

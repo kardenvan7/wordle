@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:wordle/extensions/list_extensions.dart';
 import 'package:wordle/letter_field/letter_field.dart';
 import 'package:wordle/mixins/safe_mode_mixin.dart';
 

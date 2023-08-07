@@ -23,6 +23,9 @@ final class FilledLetterFieldState implements LetterFieldState {
   final String letter;
   final LetterValidationStatus validationStatus;
 
+  bool get isValidated =>
+      validationStatus != LetterValidationStatus.notValidated;
+
   @override
   int get hashCode => letter.hashCode ^ validationStatus.hashCode;
 

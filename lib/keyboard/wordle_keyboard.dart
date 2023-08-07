@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-part 'wordle_keyboard_letter_key.dart';
+part 'wordle_keyboard_key.dart';
 
 class WordleKeyboard extends StatefulWidget {
   const WordleKeyboard({

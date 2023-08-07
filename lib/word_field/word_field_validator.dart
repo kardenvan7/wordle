@@ -5,7 +5,6 @@ abstract interface class WordFieldValidator {
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
     String correctWord,
-    VoidCallback updateState,
   );
 }
 
@@ -22,7 +21,6 @@ class DefaultWordFieldValidator
     List<LetterFieldController> letterFieldsControllers,
     WordFieldState state,
     String correctWord,
-    VoidCallback updateState,
   ) {
     if (state.isValidated) {
       return handleError('Can not validate already validated word field');
@@ -35,7 +33,6 @@ class DefaultWordFieldValidator
     }
 
     _validateLetters(letterFieldsControllers, correctWord);
-    updateState();
   }
 
   void _validateLetters(

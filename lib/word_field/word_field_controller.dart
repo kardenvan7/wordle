@@ -55,6 +55,8 @@ final class _WordFieldControllerImpl
     state = WordFieldState.initial(
       letterStates: letterFieldsControllers.map((e) => e.state).toList(),
     );
+
+    _subscribeToLetterFieldControllers();
   }
 
   @override
@@ -68,13 +70,60 @@ final class _WordFieldControllerImpl
   @override
   late WordFieldState state;
 
+  void _subscribeToLetterFieldControllers() {
+    for (int i = 0; i < letterFieldsControllers.length; i++) {
+      letterFieldsControllers[i].addListener(() {
+        _letterFieldControllerListener(i);
+      });
+    }
+  }
+
+  void _unsubscribeFromLetterFieldControllers() {
+    for (int i = 0; i < letterFieldsControllers.length; i++) {
+      letterFieldsControllers[i].removeListener(() {
+        _letterFieldControllerListener(i);
+      });
+    }
+  }
+
+  void _letterFieldControllerListener(int index) {
+    final newState = letterFieldsControllers[index].state;
+    final newStates = state.letterStates.withReplacedAt(index, newState);
+
+    final isLast = index == letterFieldsControllers.length - 1;
+
+    final newValidationStatus = switch (newState) {
+      EmptyLetterFieldState() => WordFieldValidationStatus.notValidated,
+      FilledLetterFieldState(validationStatus: final validationStatus) =>
+        switch (validationStatus) {
+          LetterValidationStatus.notValidated =>
+            WordFieldValidationStatus.notValidated,
+          LetterValidationStatus.absent => isLast
+              ? WordFieldValidationStatus.incorrect
+              : state.validationStatus,
+          LetterValidationStatus.wrongPlacement => isLast
+              ? WordFieldValidationStatus.incorrect
+              : state.validationStatus,
+          LetterValidationStatus.correct => !state.isValidated && isLast
+              ? WordFieldValidationStatus.correct
+              : state.validationStatus,
+        },
+    };
+
+    state = WordFieldState(
+      letterStates: newStates,
+      validationStatus: newValidationStatus,
+    );
+
+    notifyListeners();
+  }
+
   @override
   void addLetter(String letter) {
     _writer.writeLetter(
       letterFieldsControllers,
       state,
       letter,
-      _updateStateFromControllers,
     );
   }
 
@@ -83,7 +132,6 @@ final class _WordFieldControllerImpl
     _eraser.eraseLetter(
       letterFieldsControllers,
       state,
-      _updateStateFromControllers,
     );
   }
 
@@ -93,7 +141,6 @@ final class _WordFieldControllerImpl
       letterFieldsControllers,
       state,
       correctWord,
-      _updateStateFromControllers,
     );
   }
 
@@ -105,63 +152,13 @@ final class _WordFieldControllerImpl
   @override
   void clear() {
     _clearAllLetters();
-    _updateStateFromControllers();
   }
 
   @override
   void dispose() {
+    _unsubscribeFromLetterFieldControllers();
     _disposeControllers();
     super.dispose();
-  }
-
-  WordFieldState _getStateFromControllers() {
-    final List<LetterFieldState> letterStates = [];
-
-    WordFieldValidationStatus wordFieldValidationStatus =
-        WordFieldValidationStatus.correct;
-
-    for (int i = 0; i < letterFieldsControllers.length; i++) {
-      final letterState = letterFieldsControllers[i].state;
-
-      letterStates.add(letterState);
-
-      if (wordFieldValidationStatus == WordFieldValidationStatus.notValidated) {
-        continue;
-      }
-
-      final bool isNotValidated = letterState is EmptyLetterFieldState ||
-          (letterState is FilledLetterFieldState &&
-              letterState.validationStatus ==
-                  LetterValidationStatus.notValidated);
-
-      if (isNotValidated) {
-        wordFieldValidationStatus = WordFieldValidationStatus.notValidated;
-        continue;
-      }
-
-      if (wordFieldValidationStatus == WordFieldValidationStatus.incorrect) {
-        continue;
-      }
-
-      final bool isIncorrect = letterState is FilledLetterFieldState &&
-          (letterState.validationStatus == LetterValidationStatus.absent ||
-              letterState.validationStatus ==
-                  LetterValidationStatus.wrongPlacement);
-
-      if (isIncorrect) {
-        wordFieldValidationStatus = WordFieldValidationStatus.incorrect;
-      }
-    }
-
-    return WordFieldState(
-      letterStates: letterStates,
-      validationStatus: wordFieldValidationStatus,
-    );
-  }
-
-  void _updateStateFromControllers() {
-    state = _getStateFromControllers();
-    notifyListeners();
   }
 
   void _clearAllLetters() {

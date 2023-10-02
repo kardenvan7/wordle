@@ -50,7 +50,7 @@ class WordFieldState {
   final WordFieldValidationStatus validationStatus;
 
   @override
-  int get hashCode => letterStates.hashCode ^ validationStatus.hashCode;
+  int get hashCode => Object.hash(letterStates, validationStatus);
 
   @override
   bool operator ==(Object other) {

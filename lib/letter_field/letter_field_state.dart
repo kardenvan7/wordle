@@ -24,7 +24,7 @@ final class FilledLetterFieldState implements LetterFieldState {
   final LetterValidationStatus validationStatus;
 
   @override
-  int get hashCode => letter.hashCode ^ validationStatus.hashCode;
+  int get hashCode => Object.hash(letter, validationStatus);
 
   @override
   bool operator ==(Object other) {

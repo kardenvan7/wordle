@@ -8,7 +8,7 @@ abstract interface class WordFieldEraser {
   );
 }
 
-class DefaultWordFieldEraser with SafeModeMixin implements WordFieldEraser {
+class DefaultWordFieldEraser with ErrorHandlerMixin implements WordFieldEraser {
   const DefaultWordFieldEraser(this.safeMode);
 
   @override

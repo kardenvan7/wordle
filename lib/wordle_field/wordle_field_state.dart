@@ -6,15 +6,6 @@ sealed class WordleFieldState {
   });
 
   final List<WordFieldState> wordsFieldsStates;
-
-  @override
-  int get hashCode => wordsFieldsStates.hashCode;
-
-  @override
-  bool operator ==(Object other) {
-    if (other is! WordleFieldState) return false;
-    return wordsFieldsStates.equals(other.wordsFieldsStates);
-  }
 }
 
 final class NotFinishedWordleFieldState extends WordleFieldState {
@@ -26,7 +17,7 @@ final class NotFinishedWordleFieldState extends WordleFieldState {
   final int currentAttempt;
 
   @override
-  int get hashCode => currentAttempt.hashCode;
+  int get hashCode => Object.hash(currentAttempt, wordsFieldsStates);
 
   @override
   bool operator ==(Object other) {
@@ -52,7 +43,7 @@ final class FinishedWordleFieldState extends WordleFieldState {
   final FinishedWordleFieldResult result;
 
   @override
-  int get hashCode => attemptsCount.hashCode ^ result.hashCode;
+  int get hashCode => Object.hash(attemptsCount, result);
 
   @override
   bool operator ==(Object other) {

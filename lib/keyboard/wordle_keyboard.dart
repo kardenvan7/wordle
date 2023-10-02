@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+part 'keyboard_action.dart';
+part 'keyboard_controller.dart';
 part 'wordle_keyboard_letter_key.dart';
 
 class WordleKeyboard extends StatefulWidget {
   const WordleKeyboard({
-    required this.onKeyPressed,
+    required this.controller,
     super.key,
   });
 
-  final void Function(KeyboardAction action) onKeyPressed;
+  final KeyboardController controller;
 
   @override
   State<WordleKeyboard> createState() => _WordleKeyboardState();
@@ -51,7 +55,7 @@ class _WordleKeyboardState extends State<WordleKeyboard> {
   ];
 
   void _onKeyPressed(KeyboardAction action) {
-    widget.onKeyPressed(action);
+    widget.controller.onKeyPressed(action);
   }
 
   @override
@@ -107,16 +111,4 @@ class _WordleKeyboardState extends State<WordleKeyboard> {
       ],
     );
   }
-}
-
-sealed class KeyboardAction {}
-
-final class LetterKeyboardAction implements KeyboardAction {
-  const LetterKeyboardAction(this.letter);
-
-  final String letter;
-}
-
-final class EraseKeyboardAction implements KeyboardAction {
-  const EraseKeyboardAction();
 }

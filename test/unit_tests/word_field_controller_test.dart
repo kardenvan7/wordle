@@ -73,7 +73,7 @@ void main() {
             uut.addLetter(correctWord[i]);
           }
 
-          for (int i = uut.correctWord.length - 1; i >= 0; i--) {
+          for (int i = correctWord.length - 1; i >= 0; i--) {
             uut.eraseLetter();
 
             expect(uut.state.letterStates[i], const EmptyLetterFieldState());

@@ -1,6 +1,15 @@
 part of 'wordle_field.dart';
 
-abstract interface class WordleFieldController {
+abstract interface class WordleFieldListenable {
+  Stream<WordleFieldState> get stateStream;
+
+  WordleFieldState get state;
+
+  List<WordFieldListenable> get wordFieldsListenables;
+}
+
+abstract interface class WordleFieldController
+    implements WordleFieldListenable {
   factory WordleFieldController({
     required String correctWord,
     required int attemptsCount,
@@ -12,14 +21,6 @@ abstract interface class WordleFieldController {
       safeMode: safeMode,
     );
   }
-
-  String get correctWord;
-
-  int get attemptsCount;
-
-  ValueListenable<WordleFieldState> get listenable;
-
-  WordleFieldState get state;
 
   void addLetter(String letter);
 
@@ -34,12 +35,12 @@ abstract interface class WordleFieldController {
   void dispose();
 }
 
-class _WordleFieldControllerImpl
-    with SafeModeMixin
+final class _WordleFieldControllerImpl
+    with ErrorHandlerMixin
     implements WordleFieldController {
   _WordleFieldControllerImpl({
-    required this.correctWord,
-    required this.attemptsCount,
+    required String correctWord,
+    required int attemptsCount,
     required this.safeMode,
   }) : wordFieldControllers = List.generate(
           attemptsCount,
@@ -48,34 +49,33 @@ class _WordleFieldControllerImpl
             safeMode: safeMode,
           ),
         ) {
-    _valueNotifier = ValueNotifier(
-      NotFinishedWordleFieldState(
-        currentAttempt: 1,
-        wordsFieldsStates: wordFieldControllers.map((e) => e.state).toList(),
-      ),
+    _state = NotFinishedWordleFieldState(
+      currentAttempt: 1,
+      wordsFieldsStates: wordFieldControllers.map((e) => e.state).toList(),
     );
   }
-
-  @override
-  final String correctWord;
-  @override
-  final int attemptsCount;
   @override
   final bool safeMode;
+  @override
+  List<WordFieldListenable> get wordFieldsListenables => wordFieldControllers;
+
+  @override
+  Stream<WordleFieldState> get stateStream => _stateController.stream;
+
+  @override
+  WordleFieldState get state => _state;
+
+  final StreamController<WordleFieldState> _stateController =
+      StreamController.broadcast();
 
   final List<WordFieldController> wordFieldControllers;
-  late final ValueNotifier<WordleFieldState> _valueNotifier;
+
+  late WordleFieldState _state;
 
   int _currentWordControllerIndex = 0;
 
   List<WordFieldState> get _wordFieldStates =>
       wordFieldControllers.map((e) => e.state).toList();
-
-  @override
-  ValueListenable<WordleFieldState> get listenable => _valueNotifier;
-
-  @override
-  WordleFieldState get state => _valueNotifier.value;
 
   @override
   void addLetter(String letter) {
@@ -141,9 +141,11 @@ class _WordleFieldControllerImpl
     if (_currentWordControllerIndex < wordFieldControllers.length) {
       _currentWordControllerIndex++;
 
-      _valueNotifier.value = NotFinishedWordleFieldState(
-        currentAttempt: _currentAttempt,
-        wordsFieldsStates: _wordFieldStates,
+      _setState(
+        NotFinishedWordleFieldState(
+          currentAttempt: _currentAttempt,
+          wordsFieldsStates: _wordFieldStates,
+        ),
       );
     }
   }
@@ -151,20 +153,24 @@ class _WordleFieldControllerImpl
   void _updateState() {
     switch (_currentWordController.state.validationStatus) {
       case WordFieldValidationStatus.correct:
-        _valueNotifier.value = FinishedWordleFieldState(
-          attemptsCount: _currentAttempt,
-          result: FinishedWordleFieldResult.won,
-          wordsFieldsStates: _wordFieldStates,
+        _setState(
+          FinishedWordleFieldState(
+            attemptsCount: _currentAttempt,
+            result: FinishedWordleFieldResult.won,
+            wordsFieldsStates: _wordFieldStates,
+          ),
         );
 
         break;
 
       case WordFieldValidationStatus.incorrect:
         if (_isLastAttempt) {
-          _valueNotifier.value = FinishedWordleFieldState(
-            attemptsCount: _currentAttempt,
-            result: FinishedWordleFieldResult.lost,
-            wordsFieldsStates: _wordFieldStates,
+          _setState(
+            FinishedWordleFieldState(
+              attemptsCount: _currentAttempt,
+              result: FinishedWordleFieldResult.lost,
+              wordsFieldsStates: _wordFieldStates,
+            ),
           );
         } else {
           _jumpToNextAttempt();
@@ -173,12 +179,19 @@ class _WordleFieldControllerImpl
         break;
 
       case WordFieldValidationStatus.notValidated:
-        _valueNotifier.value = NotFinishedWordleFieldState(
-          currentAttempt: _currentAttempt,
-          wordsFieldsStates: _wordFieldStates,
+        _setState(
+          NotFinishedWordleFieldState(
+            currentAttempt: _currentAttempt,
+            wordsFieldsStates: _wordFieldStates,
+          ),
         );
 
         break;
     }
+  }
+
+  void _setState(WordleFieldState state) {
+    _state = state;
+    _stateController.add(state);
   }
 }

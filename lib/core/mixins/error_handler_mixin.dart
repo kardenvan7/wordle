@@ -1,4 +1,4 @@
-mixin SafeModeMixin {
+mixin ErrorHandlerMixin {
   bool get safeMode;
 
   void handleError(String message) {

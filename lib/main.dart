@@ -83,13 +83,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: Column(
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            WordleField(
-              wordleFieldController: _wordleFieldController,
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: WordleField(controller: _wordleFieldController),
             ),
             Wrap(
               runAlignment: WrapAlignment.center,
@@ -111,9 +112,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            WordleKeyboard(
-              onKeyPressed: _onKeyPressed,
-            ),
+            // WordleKeyboard(
+            //   onKeyPressed: _onKeyPressed,
+            // ),
           ],
         ),
       ),

@@ -1,19 +1,32 @@
 part of 'letter_field.dart';
 
-abstract interface class LetterFieldController implements Listenable {
+abstract interface class LetterFieldListenable {
+  /// Current state of the field
+  ///
+  LetterFieldState get state;
+
+  /// Stream of field states
+  ///
+  Stream<LetterFieldState> get stateStream;
+
+  /// Stream of one-time ui events that should not be stored in state
+  ///
+  Stream<LetterFieldEvent> get uiEventStream;
+}
+
+abstract interface class LetterFieldController
+    implements LetterFieldListenable {
   factory LetterFieldController({
     LetterFieldState initialState = const EmptyLetterFieldState(),
     bool safeMode = false,
+    LetterFieldShaker shaker = const DefaultLetterFieldShaker(),
   }) {
     return _LetterFieldControllerImpl(
       initialState: initialState,
       safeMode: safeMode,
+      shaker: shaker,
     );
   }
-
-  LetterFieldState get state;
-
-  Stream<LetterFieldEvent> get eventStream;
 
   void setLetter(String letter);
 
@@ -29,22 +42,34 @@ abstract interface class LetterFieldController implements Listenable {
 }
 
 final class _LetterFieldControllerImpl
-    with ChangeNotifier, SafeModeMixin, EventStreamMixin<LetterFieldEvent>
+    with ErrorHandlerMixin
     implements LetterFieldController {
   _LetterFieldControllerImpl({
     required LetterFieldState initialState,
     required this.safeMode,
-    LetterFieldShaker shaker = const DefaultLetterFieldShaker(),
+    required LetterFieldShaker shaker,
   })  : _shaker = shaker,
-        state = initialState;
+        _state = initialState;
 
   @override
   final bool safeMode;
+  final LetterFieldShaker _shaker;
 
   @override
-  LetterFieldState state;
+  LetterFieldState get state => _state;
 
-  final LetterFieldShaker _shaker;
+  @override
+  Stream<LetterFieldState> get stateStream => _stateStreamController.stream;
+
+  @override
+  Stream<LetterFieldEvent> get uiEventStream => _uiEventStreamController.stream;
+
+  LetterFieldState _state;
+
+  final StreamController<LetterFieldState> _stateStreamController =
+      StreamController<LetterFieldState>.broadcast();
+  final StreamController<LetterFieldEvent> _uiEventStreamController =
+      StreamController<LetterFieldEvent>.broadcast();
 
   @override
   void setLetter(String letter) {
@@ -99,12 +124,22 @@ final class _LetterFieldControllerImpl
 
   @override
   void shake() {
-    _shaker.shake((type) => addEvent(ShakeLetterFieldEvent(type: type)));
+    _shaker.shake(
+      (type) => _uiEventStreamController.add(
+        ShakeLetterFieldEvent(type: type),
+      ),
+    );
   }
 
   @override
   void clear() {
     _setState(const EmptyLetterFieldState());
+  }
+
+  @override
+  void dispose() {
+    _uiEventStreamController.close();
+    _stateStreamController.close();
   }
 
   void _setLetter(String letter) {
@@ -133,8 +168,8 @@ final class _LetterFieldControllerImpl
   }
 
   void _setState(LetterFieldState state) {
-    this.state = state;
-    notifyListeners();
+    _state = state;
+    _stateStreamController.add(state);
   }
 }
 

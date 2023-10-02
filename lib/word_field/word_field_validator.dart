@@ -10,7 +10,7 @@ abstract interface class WordFieldValidator {
 }
 
 class DefaultWordFieldValidator
-    with SafeModeMixin
+    with ErrorHandlerMixin
     implements WordFieldValidator {
   const DefaultWordFieldValidator(this.safeMode);
 

@@ -9,7 +9,7 @@ abstract interface class WordFieldWriter {
   );
 }
 
-class DefaultWordFieldWriter with SafeModeMixin implements WordFieldWriter {
+class DefaultWordFieldWriter with ErrorHandlerMixin implements WordFieldWriter {
   const DefaultWordFieldWriter(this.safeMode);
 
   @override

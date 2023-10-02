@@ -1,25 +1,31 @@
 part of 'word_field.dart';
 
-abstract interface class WordFieldController implements Listenable {
+abstract interface class WordFieldListenable {
+  WordFieldState get state;
+
+  Stream<WordFieldState> get stateStream;
+
+  List<LetterFieldListenable> get letterFieldsListenables;
+}
+
+abstract interface class WordFieldController implements WordFieldListenable {
   factory WordFieldController({
     required String correctWord,
     bool safeMode = false,
     WordFieldValidator? validator,
-    WordFieldWriter? letterWriter,
-    WordFieldEraser? letterEraser,
+    WordFieldWriter? writer,
+    WordFieldEraser? eraser,
+    WordFieldShaker? shaker,
   }) {
     return _WordFieldControllerImpl(
       correctWord: correctWord,
       safeMode: safeMode,
       validator: validator,
-      eraser: letterEraser,
-      writer: letterWriter,
+      eraser: eraser,
+      writer: writer,
+      shaker: shaker,
     );
   }
-
-  WordFieldState get state;
-
-  String get correctWord;
 
   void addLetter(String letter);
 
@@ -34,17 +40,16 @@ abstract interface class WordFieldController implements Listenable {
   void dispose();
 }
 
-final class _WordFieldControllerImpl
-    with ChangeNotifier
-    implements WordFieldController {
+final class _WordFieldControllerImpl implements WordFieldController {
   _WordFieldControllerImpl({
-    required this.correctWord,
+    required String correctWord,
     required bool safeMode,
-    WordFieldValidator? validator,
-    WordFieldWriter? writer,
-    WordFieldEraser? eraser,
-    WordFieldShaker? shaker,
-  })  : letterFieldsControllers = List.generate(
+    required WordFieldValidator? validator,
+    required WordFieldWriter? writer,
+    required WordFieldEraser? eraser,
+    required WordFieldShaker? shaker,
+  })  : _correctWord = correctWord,
+        letterFieldsControllers = List.generate(
           correctWord.length,
           (index) => LetterFieldController(safeMode: safeMode),
         ),
@@ -57,13 +62,21 @@ final class _WordFieldControllerImpl
     );
   }
 
-  @override
-  final String correctWord;
+  final String _correctWord;
   final List<LetterFieldController> letterFieldsControllers;
   final WordFieldValidator _validator;
   final WordFieldWriter _writer;
   final WordFieldEraser _eraser;
   final WordFieldShaker _shaker;
+  final StreamController<WordFieldState> _stateStreamController =
+      StreamController.broadcast();
+
+  @override
+  List<LetterFieldListenable> get letterFieldsListenables =>
+      letterFieldsControllers;
+
+  @override
+  Stream<WordFieldState> get stateStream => _stateStreamController.stream;
 
   @override
   late WordFieldState state;
@@ -92,7 +105,7 @@ final class _WordFieldControllerImpl
     _validator.validate(
       letterFieldsControllers,
       state,
-      correctWord,
+      _correctWord,
       _updateStateFromControllers,
     );
   }
@@ -110,8 +123,8 @@ final class _WordFieldControllerImpl
 
   @override
   void dispose() {
-    _disposeControllers();
-    super.dispose();
+    _disposeLettersControllers();
+    _stateStreamController.close();
   }
 
   WordFieldState _getStateFromControllers() {
@@ -161,7 +174,7 @@ final class _WordFieldControllerImpl
 
   void _updateStateFromControllers() {
     state = _getStateFromControllers();
-    notifyListeners();
+    _stateStreamController.add(state);
   }
 
   void _clearAllLetters() {
@@ -170,11 +183,9 @@ final class _WordFieldControllerImpl
     }
   }
 
-  void _disposeControllers() {
+  void _disposeLettersControllers() {
     for (final letterController in letterFieldsControllers) {
       letterController.dispose();
     }
   }
 }
-
-typedef HandleErrorCallback = void Function(String message);

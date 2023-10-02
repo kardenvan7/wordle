@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:wordle/core/widgets/stream_listener.dart';
-import 'package:wordle/mixins/event_stream_mixin.dart';
-import 'package:wordle/mixins/safe_mode_mixin.dart';
+import 'package:wordle/core/mixins/error_handler_mixin.dart';
 
 part 'letter_field_controller.dart';
 part 'letter_field_shaker.dart';
@@ -9,13 +10,13 @@ part 'letter_field_state.dart';
 
 class LetterField extends StatelessWidget {
   const LetterField({
-    required this.controller,
+    required this.listenable,
     Key? key,
   }) : super(key: key);
 
-  final LetterFieldController controller;
+  final LetterFieldListenable listenable;
 
-  void _onEvent(BuildContext context, LetterFieldEvent event) {
+  void _onUiEvent(BuildContext context, LetterFieldEvent event) {
     switch (event) {
       case ShakeLetterFieldEvent():
         _onShakeEvent(event);
@@ -44,12 +45,12 @@ class LetterField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamListener<LetterFieldEvent>(
-      stream: controller.eventStream,
-      listener: _onEvent,
-      child: ListenableBuilder(
-        listenable: controller,
+      stream: listenable.uiEventStream,
+      listener: _onUiEvent,
+      child: StreamBuilder<LetterFieldState>(
+        stream: listenable.stateStream,
         builder: (context, _) {
-          final state = controller.state;
+          final state = listenable.state;
 
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
